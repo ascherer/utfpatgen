@@ -149,7 +149,7 @@ The required formats of these files are the same as for the \patgen{} program an
 are discussed in dedicated sections.
 
 @<Initialization sequence@>=
-struct params *params = init_params();
+params *params = init_params();
 if (params == NULL){
     return EXIT_FAILURE;
 }
@@ -157,7 +157,7 @@ if (!parse_input(argv, argc, params)){
     destroy_params(params);
     return EXIT_FAILURE;
 }
-struct translate_table *tt = init_tr_table(256, 128);
+translate_table *tt = init_tr_table(256, 128);
 if (tt == NULL){
     destroy_params(params);
     return EXIT_FAILURE;
@@ -167,13 +167,13 @@ if (!read_translate(params, tt)){
     destroy_tr_table(tt);
     return EXIT_FAILURE;
 }
-struct pattern_trie *pt = init_pattern_trie(256, 128);
+pattern_trie *pt = init_pattern_trie(256, 128);
 if (pt == NULL){
     destroy_params(params);
     destroy_tr_table(tt);
     return EXIT_FAILURE;
 }
-struct pass_stats ps;
+pass_stats ps;
 if (!read_patterns(params, pt, tt, &ps)){
     destroy_params(params);
     destroy_tr_table(tt);
@@ -366,7 +366,7 @@ later use. Returns a boolean indicating whether all files have been opened
 successfully.
 
 @c
-bool parse_input(char *argv[], int argc, struct params *params){
+bool parse_input(char *argv[], int argc, params *params){
     if (argc != 5){
         fprintf(stderr, "utfpatgen need exactly 4 arguments.\nTry `utfpatgen --help` for more information.\n");
         return false;
@@ -410,7 +410,7 @@ it sets {\tt eof} flag of the buffer. Returns a boolean indicating whether the
 line has been read successfully.
 
 @c
-bool read_line(FILE *stream, struct string_buffer *buf){
+bool read_line(FILE *stream, string_buffer *buf){
     reset_buffer(buf);
     char c;
     while ((c = fgetc(stream)) != EOF) {
@@ -496,13 +496,13 @@ obtained. If the file is empty, the method fetches a default ASCII mapping.
 Returns a boolean indicating whether the file has been read successfully.
 
 @c
-bool read_translate(struct params *params, struct translate_table *tt){
+bool read_translate(params *params, translate_table *tt){
     rewind(params->translate_file);
-    struct string_buffer *buf = init_buffer(64);
+    string_buffer *buf = init_buffer(64);
     if (buf == NULL) {
         return false;
     }
-    struct trie *helper_trie = init_trie(256);
+    trie *helper_trie = init_trie(256);
     if (helper_trie == NULL) {
         destroy_buffer(buf);
         return false;
@@ -584,7 +584,7 @@ Returns a boolean indicating whether the sequence is representing a number and
 parsing was finished successfully.
 
 @c
-bool parse_two_digit(struct string_buffer *buf, size_t pos, int8_t *out){
+bool parse_two_digit(string_buffer *buf, size_t pos, int8_t *out){
     if (pos + 1 >= buf->size) {
         return false;
     }
@@ -613,7 +613,7 @@ translate file. If successful, the values of parameters are stored in
 {\tt params}. Return value indicates whether the parsing succeeded.
 
 @c
-bool parse_header(struct string_buffer *buf, struct params *params){
+bool parse_header(string_buffer *buf, params *params){
     int8_t val = -1;
     if (!parse_two_digit(buf, 0, &val)) {
         return false;
@@ -645,7 +645,7 @@ variants are stored in the translation table. If any of the letters was already
 in the table, the method fails. Return values indicates the success of parsing.
 
 @c
-bool parse_letters(struct string_buffer *buf, struct translate_table *tt, struct trie *helper_trie){
+bool parse_letters(string_buffer *buf, translate_table *tt, trie *helper_trie){
     if (buf->size == 0){
         fprintf(stderr, "Empty line in translate file\n");
         return false;
@@ -656,7 +656,7 @@ bool parse_letters(struct string_buffer *buf, struct translate_table *tt, struct
     }
     size_t letter_index = tt->letter_count + 1;
     size_t out_index;
-    struct string_buffer *letter = init_buffer(4);
+    string_buffer *letter = init_buffer(4);
     if (letter == NULL) {
         return false;
     }
@@ -713,7 +713,7 @@ Fetches default ASCII character mapping into the translate table. Return value
 indicate the success of fetching.
 
 @c
-bool default_ascii_mapping(struct translate_table *tt, struct trie *helper_trie){
+bool default_ascii_mapping(translate_table *tt, trie *helper_trie){
     size_t out_index;
     size_t letter_index;
     char upper;
@@ -785,20 +785,20 @@ Iterates over the pattern file and reads its entries into a pattern trie. Return
 value indicates whether the whole file has been read and parsed successfully.
 
 @c
-bool read_patterns(struct params *params, struct pattern_trie *pt, struct translate_table *tt, struct pass_stats *ps){
+bool read_patterns(params *params, pattern_trie *pt, translate_table *tt, pass_stats *ps){
     ps->level_pattern_cnt = 0;
     ps->max_level = 0;
-    struct string_buffer *buf = init_buffer(16);
+    string_buffer *buf = init_buffer(16);
     if (buf == NULL){
         return false;
     }
     buf->eof = false;
-    struct pattern *pat = init_pattern(16);
+    pattern *pat = init_pattern(16);
     if (pat == NULL){
         destroy_buffer(buf);
         return false;
     }
-    struct trie *helper_trie = init_trie(256);
+    trie *helper_trie = init_trie(256);
     if (helper_trie == NULL){
         destroy_pattern(pat);
         destroy_buffer(buf);
@@ -826,11 +826,11 @@ it into a pattern structure. Return value indicates the success of translation
 and parsing.
 
 @c
-bool parse_pattern(struct string_buffer *buf, struct pattern *out_pattern, struct translate_table *tt){
+bool parse_pattern(string_buffer *buf, pattern *out_pattern, translate_table *tt){
     reset_pattern(out_pattern);
     char c;
     bool next_hyphen = false;
-    struct string_buffer *letter = init_buffer(4);
+    string_buffer *letter = init_buffer(4);
     if (letter == NULL){
         return false;
     }
@@ -903,7 +903,7 @@ Inserts the pattern into pattern trie and collects statistics along the way.
 Return value indicates the success of insertion.
 
 @c
-bool insert_new_pattern(struct pattern *pat, struct pattern_trie *pt, struct pass_stats *ps, struct trie *helper_trie){
+bool insert_new_pattern(pattern *pat, pattern_trie *pt, pass_stats *ps, trie *helper_trie){
     size_t hyphenation_value, node;
     size_t current_len = 0;
     if (!insert_pattern(pt->t, pat->text, &node, helper_trie)){
@@ -960,7 +960,7 @@ Statistics of the pass are printed out at the end of the method. Return value
 indicates the success of reading, parsing, and pattern generation.
 
 @c
-bool process_dictionary(struct params *params, struct translate_table *tt, struct pattern_trie *pt, struct pass_stats *ps){
+bool process_dictionary(params *params, translate_table *tt, pattern_trie *pt, pass_stats *ps){
     ps->good_cnt = 0;
     ps->bad_cnt = 0;
     ps->miss_cnt = 0;
@@ -972,7 +972,7 @@ bool process_dictionary(struct params *params, struct translate_table *tt, struc
         params->good_dot = BAD_HYF;
         params->bad_dot = GOOD_HYF;
     }
-    struct count_trie *ct = init_count_trie(256, 256);
+    count_trie *ct = init_count_trie(256, 256);
     if (ct == NULL){
         return false;
     }
@@ -1000,7 +1000,7 @@ trie. Return value indicates whether the whole file has been processed
 successfully.
 
 @c
-bool process_all_words(struct params *params, struct translate_table *tt, struct pattern_trie *pt, struct pass_stats *ps, struct count_trie *ct){
+bool process_all_words(params *params, translate_table *tt, pattern_trie *pt, pass_stats *ps, count_trie *ct){
     rewind(params->dictionary_file);
     uint8_t dot_min = params->pat_dot;
     uint8_t dot_max = params->pat_len - params->pat_dot;
@@ -1011,17 +1011,17 @@ bool process_all_words(struct params *params, struct translate_table *tt, struct
         dot_max = params->right_hyphen_min + 1;
     }
     size_t dot_len = dot_min + dot_max;
-    struct string_buffer *buf = init_buffer(64);
+    string_buffer *buf = init_buffer(64);
     if (buf == NULL){
         return false;
     }
     buf->eof = false;
-    struct word *word = init_word(16);
+    word *word = init_word(16);
     if (word == NULL){
         destroy_buffer(buf);
         return false;
     }
-    struct trie *helper_trie = init_trie(256);
+    trie *helper_trie = init_trie(256);
     if (helper_trie == NULL){
         destroy_word(word);
         destroy_buffer(buf);
@@ -1055,15 +1055,15 @@ Parses the text from buffer to {\tt word} structure. The text is translated to
 lowercase and hyphens are processed. Return value indicates successful parsing.
 
 @c
-bool parse_word(struct string_buffer *buf, struct translate_table *tt, struct params *params, struct word *out_word){
+bool parse_word(string_buffer *buf, translate_table *tt, params *params, word *out_word){
     reset_word(out_word);
     char edge_of_word[] = {EDGE_OF_WORD, '\0'};
-    struct string_buffer *letter = init_buffer(4);
+    string_buffer *letter = init_buffer(4);
     if (letter == NULL) {
         return false;
     }
     uint8_t weight = params->word_weight;
-    enum hyphen_type hyf = NO_HYF;
+    hyphen_type hyf = NO_HYF;
     size_t letter_index = get_letter_index(tt, edge_of_word);
     if (!convert_index(letter_index, out_word)){
         destroy_buffer(letter);
@@ -1149,7 +1149,7 @@ bool parse_word(struct string_buffer *buf, struct translate_table *tt, struct pa
 Collects statistics about the hyphens in parsed word.
 
 @c
-void count_dots(struct word *word, struct params *params, struct pass_stats *ps){
+void count_dots(word *word, params *params, pass_stats *ps){
     if (word->length < (uint8_t) (params->right_hyphen_min + 1)){
         return;
     }
@@ -1157,7 +1157,7 @@ void count_dots(struct word *word, struct params *params, struct pass_stats *ps)
     size_t current_pos = 0;
     bool odd_level;
     size_t dot_index, hyphenation_value, weight;
-    enum hyphen_type hyf;
+    hyphen_type hyf;
     for (size_t dot_pos = params->left_hyphen_min + 1; dot_pos < (uint8_t) (word->length - params->right_hyphen_min); dot_pos++){
         while (current_pos < dot_pos){
             if ((uint8_t) word->translated[current_index] != 0xff) {
@@ -1192,7 +1192,7 @@ Generates all candidate patterns from the parsed word and inserts them to count
 trie. Return value indicates the success of generating and insertion.
 
 @c
-bool process_word(struct word *word, struct count_trie *ct, struct params *params, struct trie *helper_trie){
+bool process_word(word *word, count_trie *ct, params *params, trie *helper_trie){
     uint8_t dot_min = params->pat_dot;
     uint8_t dot_max = params->pat_len - params->pat_dot;
     if (dot_min < params->left_hyphen_min + 1){
@@ -1205,7 +1205,7 @@ bool process_word(struct word *word, struct count_trie *ct, struct params *param
     size_t current_pos = 0;
     size_t current_index = 0;
     bool good_pattern;
-    enum hyphen_type hyf;
+    hyphen_type hyf;
     for (size_t dot_pos = dot_min; dot_pos + dot_max <= word->length; dot_pos++) {
         while (current_pos < dot_pos){
             if ((uint8_t) word->translated[current_index] != 0xff){
@@ -1302,7 +1302,7 @@ Generates new patterns from the count trie and prints out statistics. Return
 value indicates whether the generation ended successfully.
 
 @c
-bool collect_count_trie(struct count_trie *ct, struct pattern_trie *pt, struct params *params, struct pass_stats *ps){
+bool collect_count_trie(count_trie *ct, pattern_trie *pt, params *params, pass_stats *ps){
     double bad_eff = (double) params->thresh / (double) params->good_wt;
     ps->good_pat_cnt = 0;
     ps->bad_pat_cnt = 0;
@@ -1335,20 +1335,20 @@ trie. Statistics are collected along the way. Return value indicates whether
 the whole trie was explored.
 
 @c
-bool traverse_count_trie(struct count_trie *ct, struct pattern_trie *pt, struct params *params, struct pass_stats *ps) {
+bool traverse_count_trie(count_trie *ct, pattern_trie *pt, params *params, pass_stats *ps) {
     size_t root = 1;
     size_t current_len = 0;
     uint8_t c;
-    struct string_buffer *pattern = init_buffer(4 * params->pat_len);
+    string_buffer *pattern = init_buffer(4 * params->pat_len);
     if (pattern == NULL){
         return false;
     }
-    struct stack *s_base = init_stack(4 * params->pat_len);
+    stack *s_base = init_stack(4 * params->pat_len);
     if (s_base == NULL) {
         destroy_buffer(pattern);
         return false;
     }
-    struct trie *helper_trie = init_trie(256);
+    trie *helper_trie = init_trie(256);
     if (helper_trie == NULL){
         destroy_buffer(pattern);
         destroy_stack(s_base);
@@ -1442,7 +1442,7 @@ Removes bad patterns from the pattern trie and prints out statistics. Return
 value indicates success of the operation.
 
 @c
-bool delete_bad_patterns(struct pattern_trie *pt){
+bool delete_bad_patterns(pattern_trie *pt){
     size_t old_op_cnt = pt->ops->count;
     size_t old_trie_cnt = pt->t->occupied;
     if (!delete_patterns(pt)){
@@ -1466,18 +1466,18 @@ patterns. Nodes that are not used after the deletion are deleted as well. Return
 value indicates whether the whole trie was explored.
 
 @c
-bool delete_patterns(struct pattern_trie *pt){
+bool delete_patterns(pattern_trie *pt){
     size_t root = 1;
-    struct stack *s_base = init_stack(16);
+    stack *s_base = init_stack(16);
     if (s_base == NULL){
         return false;
     }
-    struct stack *s_offset = init_stack(16);
+    stack *s_offset = init_stack(16);
     if (s_offset == NULL){
         destroy_stack(s_base);
         return false;
     }
-    struct stack *s_freed = init_stack(16);
+    stack *s_freed = init_stack(16);
     if (s_freed == NULL){
         destroy_stack(s_base);
         destroy_stack(s_offset);
@@ -1565,7 +1565,7 @@ Removes unused node from a trie and links it to the beginning of free space
 chain.
 
 @c
-void deallocate_node(struct trie *t, size_t t_index){
+void deallocate_node(trie *t, size_t t_index){
     size_t old_head = t->links[0];
     t->nodes[t_index] = 0;
     t->links[0] = t_index;
@@ -1580,7 +1580,7 @@ Fixes the output linking to not contain the outputs that will be deleted.
 Returns true upon success.
 
 @c
-bool link_around_bad_outputs(struct pattern_trie *pt, size_t t_index){
+bool link_around_bad_outputs(pattern_trie *pt, size_t t_index){
     size_t lookup_index = pt->t->aux[t_index];
     if (lookup_index == 0){
         return true;
@@ -1623,15 +1623,15 @@ the output file. Returns true if the whole trie has been explored and patterns
 successfully written.
 
 @c
-bool output_patterns(struct pattern_trie *pt, struct translate_table *tt, FILE *output_file){
+bool output_patterns(pattern_trie *pt, translate_table *tt, FILE *output_file){
     size_t root = 1;
     uint8_t c;
-    struct string_buffer *pattern = init_buffer(16);
+    string_buffer *pattern = init_buffer(16);
     if (pattern == NULL){
         return false;
     }
 
-    struct stack *s_base = init_stack(16);
+    stack *s_base = init_stack(16);
     if (s_base == NULL) {
         destroy_buffer(pattern);
         return false;
@@ -1679,7 +1679,7 @@ bool output_patterns(struct pattern_trie *pt, struct translate_table *tt, FILE *
 Writes single pattern to the output file.
 
 @c
-void output_pattern(struct string_buffer *pattern, struct translate_table *tt, struct outputs *ops, size_t op_index, FILE *output_file){
+void output_pattern(string_buffer *pattern, translate_table *tt, outputs *ops, size_t op_index, FILE *output_file){
     if (op_index == 0){
         return;
     }
@@ -1714,10 +1714,10 @@ Selects the hyphenation level to be used in given dot position. Return the
 level value.
 
 @c
-size_t get_highest_level(struct outputs *ops, size_t start_index, size_t position){
+size_t get_highest_level(outputs *ops, size_t start_index, size_t position){
     size_t highest = 0;
     size_t op_index = ops->lookup[start_index];
-    struct output op;
+    output op;
     while (op_index > 0){
         op = ops->data[op_index];
         if (op.position == position && op.value != BAD_OP_VALUE && op.value > highest){
@@ -1742,11 +1742,11 @@ trie. Found hyphens are stored in word's {\tt found\_hyphens} field. Returns
 true if hyphenation ended without errors.
 
 @c
-bool hyphenate_word(struct word *word, struct pattern_trie *pt, struct params *params){
+bool hyphenate_word(word *word, pattern_trie *pt, params *params){
     size_t current_index = 0;
     size_t current_pos = 0;
     size_t node, base, start_index, dot_index, end_index, op_index, dot_pos, end_pos;
-    struct output op;
+    output op;
     if (word->length < (uint8_t) (params->right_hyphen_min + 1)){
         return true;
     }
@@ -1812,7 +1812,7 @@ if required. Return value indicates whether the hyphenation and file printout
 finished successfully.
 
 @c
-bool hyphenate_dictionary(struct params *params, struct translate_table *tt, struct pattern_trie *pt, bool output, struct pass_stats *ps){
+bool hyphenate_dictionary(params *params, translate_table *tt, pattern_trie *pt, bool output, pass_stats *ps){
     ps->good_cnt = 0;
     ps->bad_cnt = 0;
     ps->miss_cnt = 0;
@@ -1853,13 +1853,13 @@ Iterates over the words in the dictionary, parses, hyphenates, and writes them
 to the {\tt pattmp} file. Returns true if no error occurs.
 
 @c
-bool hyphenate_all_words(struct params *params, struct translate_table *tt, struct pattern_trie *pt, FILE *pattmp, struct pass_stats *ps){
+bool hyphenate_all_words(params *params, translate_table *tt, pattern_trie *pt, FILE *pattmp, pass_stats *ps){
     rewind(params->dictionary_file);
-    struct string_buffer *buf = init_buffer(64);
+    string_buffer *buf = init_buffer(64);
     if (buf == NULL){
         return false;
     }
-    struct word *word = init_word(16);
+    word *word = init_word(16);
     if (word == NULL){
         destroy_buffer(buf);
         return false;
@@ -1885,7 +1885,7 @@ bool hyphenate_all_words(struct params *params, struct translate_table *tt, stru
 Writes the parsed and hyphenated word to the {\tt pattmp} file.
 
 @c
-void output_hyphenated_word(FILE *pattmp, struct word *word, struct translate_table *tt, struct params *params){
+void output_hyphenated_word(FILE *pattmp, word *word, translate_table *tt, params *params){
     if (params->word_weight > 1){
         fprintf(pattmp, "%d", params->word_weight);
     }
@@ -1999,8 +1999,8 @@ fields:
         whether indices are used as bases.
 
 @c
-struct trie *init_trie(size_t capacity){
-    struct trie *t = malloc(sizeof(struct trie));
+trie *init_trie(size_t capacity){
+    trie *t = malloc(sizeof(trie));
     if (t == NULL) {
         fputs("Allocation error\n", stderr);
         return NULL;
@@ -2038,7 +2038,7 @@ called during trie initialization, since these nodes will never be moved
 elsewhere. Return value indicates whether all the insertions succeeded.
 
 @c
-bool put_first_level(struct trie *t){
+bool put_first_level(trie *t){
     size_t root = 1;
     size_t n_bytes = 255;
     if (t->capacity < n_bytes + 2){
@@ -2064,7 +2064,7 @@ bool put_first_level(struct trie *t){
     return true;
 }
 
-struct trie *resize_trie(struct trie *t, size_t new_capacity){
+trie *resize_trie(trie *t, size_t new_capacity){
     void *new_nodes = realloc(t->nodes, new_capacity * sizeof(char));
     if (new_nodes == NULL) {
         fputs("Allocation error\n", stderr); return NULL;
@@ -2100,7 +2100,7 @@ struct trie *resize_trie(struct trie *t, size_t new_capacity){
     return t;
 }
 
-void destroy_trie(struct trie *t){
+void destroy_trie(trie *t){
     free(t->nodes);
     free(t->links);
     free(t->aux);
@@ -2112,7 +2112,7 @@ void destroy_trie(struct trie *t){
 Connects all empty spaces in the trie.
 
 @c
-void relink_trie(struct trie *t){
+void relink_trie(trie *t){
     size_t last_free = 0;
     for (size_t node = 2; node < t->capacity; node++){
         if (!is_node_occupied(t, node)) {
@@ -2128,7 +2128,7 @@ Replicates a node between two tries. Return value indicates the success of the
 operation.
 
 @c
-bool copy_node(struct trie *from, size_t from_index, struct trie *to, size_t to_index){
+bool copy_node(trie *from, size_t from_index, trie *to, size_t to_index){
     if (to_index >= to->capacity){
         size_t new_capacity = ((to_index / to->capacity) + 1) * to->capacity;
         if (resize_trie(to, new_capacity) == NULL) {
@@ -2148,7 +2148,7 @@ bool copy_node(struct trie *from, size_t from_index, struct trie *to, size_t to_
     return true;
 }
 
-bool get_base_used(struct trie *t, size_t index){
+bool get_base_used(trie *t, size_t index){
     if (index >= t->capacity) {
         return false;
     }
@@ -2157,7 +2157,7 @@ bool get_base_used(struct trie *t, size_t index){
     return (t->taken[byte_index] & (1 << bit_index)) != 0;
 }
 
-bool set_base_used(struct trie *t, size_t index, bool used){
+bool set_base_used(trie *t, size_t index, bool used){
     if (index >= t->capacity) {
         if (resize_trie(t, index + 1) == NULL) {
             return false;
@@ -2179,7 +2179,7 @@ Sets the relevant ({\tt link} and {\tt aux}) pointers to link two empty spaces
 next to each other.
 
 @c
-void set_links(struct trie *t, size_t from, size_t to){
+void set_links(trie *t, size_t from, size_t to){
     t->links[from] = to;
     t->aux[to] = from;
 }
@@ -2188,7 +2188,7 @@ void set_links(struct trie *t, size_t from, size_t to){
 Returns true if the given trie index is occupied by a node.
 
 @c
-bool is_node_occupied(struct trie *t, size_t index){
+bool is_node_occupied(trie *t, size_t index){
     return t->nodes[index] != 0;
 }
 
@@ -2198,7 +2198,7 @@ the way. If the insertion is successful, true is returned and the resulting
 index is stored in {\tt out\_op\_index}.
 
 @c
-bool insert_pattern(struct trie *t, const char *pattern, size_t *out_op_index, struct trie *helper_trie){
+bool insert_pattern(trie *t, const char *pattern, size_t *out_op_index, trie *helper_trie){
     size_t length = strlen(pattern);
     return insert_substring(t, pattern, length, length, out_op_index, helper_trie);
 }
@@ -2209,7 +2209,7 @@ trie, possibly creating nodes along the way. If the insertion is successful,
 true is returned and the resulting index is stored in {\tt out\_op\_index}.
 
 @c
-bool insert_substring(struct trie *t, const char *pattern, size_t end, size_t length, size_t *out_op_index, struct trie *helper_trie){
+bool insert_substring(trie *t, const char *pattern, size_t end, size_t length, size_t *out_op_index, trie *helper_trie){
     size_t index = end - length;
     size_t base = 1;
     size_t node = base + (uint8_t) pattern[index];
@@ -2272,7 +2272,7 @@ value. If the repacking finishes successfully, the index for new node is stored
 in {\tt base} and true is returned.
 
 @c
-bool repack(struct trie *t, struct trie *q, size_t *node, size_t *base, char value){
+bool repack(trie *t, trie *q, size_t *node, size_t *base, char value){
     if (!unpack(t, *base - (uint8_t) value, q)) {
         return false;
     }
@@ -2299,7 +2299,7 @@ bool repack(struct trie *t, struct trie *q, size_t *node, size_t *base, char val
 Moves all nodes with the given base to auxiliary trie.
 
 @c
-bool unpack(struct trie *from, size_t base, struct trie *to){
+bool unpack(trie *from, size_t base, trie *to){
     to->node_max = 1;
     for (size_t i = 1; i < 256; i++){
         size_t from_index = base + i;
@@ -2323,7 +2323,7 @@ and copies them into their new indices. Return true if the search and copying
 finishes successfully.
 
 @c
-bool first_fit(struct trie *t, struct trie *q, size_t *out_base){
+bool first_fit(trie *t, trie *q, size_t *out_base){
     size_t base;
     if (!find_base_for_first_fit(t, q, &base)) {
         return false;
@@ -2351,7 +2351,7 @@ the {\tt q} trie. If the search is successful, resulting index is stored in
 {\tt out\_base} and true is returned.
 
 @c
-bool find_base_for_first_fit(struct trie *t, struct trie *q, size_t *out_base){
+bool find_base_for_first_fit(trie *t, trie *q, size_t *out_base){
     size_t t_index;
     uint8_t offset;
     if (q->node_max > 5 && t->capacity > t->node_max + 1){
@@ -2405,7 +2405,7 @@ Returns the index of the node corresponding to the given pattern, or 0 if such
 node does not exist.
 
 @c
-size_t traverse_trie(struct trie *t, const char *pattern){
+size_t traverse_trie(trie *t, const char *pattern){
     size_t index = 1;
     size_t node = (uint8_t) pattern[0] + 1;
     size_t base = t->links[node];
@@ -2457,15 +2457,15 @@ already at 75 \% capacity. Lookup index 0 does not point to any output and the
 program interprets it as "no output present".
 
 @c
-struct outputs *init_outputs(size_t capacity){
-    struct outputs *ops = malloc(sizeof(struct outputs));
+outputs *init_outputs(size_t capacity){
+    outputs *ops = malloc(sizeof(outputs));
     if (ops == NULL) {
         fputs("Allocation error\n", stderr);
         return NULL;
     }
     ops->capacity = capacity;
     ops->count = 0;
-    ops->data = calloc(capacity + 1, sizeof(struct output));
+    ops->data = calloc(capacity + 1, sizeof(output));
     if (ops->data == NULL) {
         fputs("Allocation error\n", stderr);
         free(ops);
@@ -2484,26 +2484,26 @@ struct outputs *init_outputs(size_t capacity){
     return ops;
 }
 
-struct outputs *resize_outputs(struct outputs *ops, size_t capacity){
-    struct output *new_data = realloc(ops->data, (capacity + 1) * sizeof(struct output)); 
+outputs *resize_outputs(outputs *ops, size_t capacity){
+    output *new_data = realloc(ops->data, (capacity + 1) * sizeof(output)); 
     if (new_data == NULL) {
         fputs("Allocation error\n", stderr);
         return NULL;
     }
     ops->data = new_data;
     size_t diff = capacity - ops->capacity;
-    memset(ops->data + ops->capacity + 1, 0, diff * sizeof(struct output));
+    memset(ops->data + ops->capacity + 1, 0, diff * sizeof(output));
     ops->capacity = capacity;
     return ops;
 }
 
-void destroy_outputs(struct outputs *ops){
+void destroy_outputs(outputs *ops){
     free(ops->data);
     free(ops->lookup);
     free(ops);
 }
 
-bool resize_lookup(struct outputs *ops, size_t new_cap, struct trie *t) {
+bool resize_lookup(outputs *ops, size_t new_cap, trie *t) {
     size_t *new_lookup = calloc(new_cap + 1, sizeof(size_t));
     size_t *old_lookup = ops->lookup;
     if (new_lookup == NULL){
@@ -2512,7 +2512,7 @@ bool resize_lookup(struct outputs *ops, size_t new_cap, struct trie *t) {
     ops->lookup = new_lookup;
     ops->lookup_cap = new_cap;
     size_t old_hash, new_hash, op_index;
-    struct output op;
+    output op;
     for (size_t node = 0; node < t->capacity; node++){
         if (!is_node_occupied(t, node) || t->aux[node] == 0){
             continue;
@@ -2533,7 +2533,7 @@ Computes the value of the hash function for given output and finds a free index
 in the lookup that will store it. If successful, returns the hash value.
 
 @c
-size_t hash_trie_output(struct outputs *ops, size_t value, size_t position, size_t next_op_index){
+size_t hash_trie_output(outputs *ops, size_t value, size_t position, size_t next_op_index){
     size_t hash = ((next_op_index + 313*position + 361*value) % ops->lookup_cap) + 1;
     size_t op_index;
     while (true) {
@@ -2562,8 +2562,8 @@ Technically speaking, the {\tt aux} pointer of each node that corresponds to a
 pattern contains the lookup index of its output.
 
 @c
-struct pattern_trie *init_pattern_trie(size_t trie_capacity, size_t outputs_capacity){
-    struct pattern_trie *pt = malloc(sizeof(struct pattern_trie));
+pattern_trie *init_pattern_trie(size_t trie_capacity, size_t outputs_capacity){
+    pattern_trie *pt = malloc(sizeof(pattern_trie));
     if (pt == NULL){
         return NULL;
     }
@@ -2586,7 +2586,7 @@ struct pattern_trie *init_pattern_trie(size_t trie_capacity, size_t outputs_capa
     return pt;
 }
 
-void destroy_pattern_trie(struct pattern_trie *pt){
+void destroy_pattern_trie(pattern_trie *pt){
     destroy_trie(pt->t);
     destroy_outputs(pt->ops);
     free(pt);
@@ -2597,7 +2597,7 @@ Creates an entry for the given output. If successful, returns true and stores
 output's lookup index to {\tt op\_index}.
 
 @c
-bool new_trie_output(struct pattern_trie *pt, size_t value, size_t position, size_t next_op_index, size_t *op_index){
+bool new_trie_output(pattern_trie *pt, size_t value, size_t position, size_t next_op_index, size_t *op_index){
     if (pt->ops->count >= pt->ops->capacity - 1) {
         if (resize_outputs(pt->ops, pt->ops->capacity * 2) == NULL) {
             return false;
@@ -2611,7 +2611,7 @@ bool new_trie_output(struct pattern_trie *pt, size_t value, size_t position, siz
     size_t hash = hash_trie_output(pt->ops, value, position, next_op_index);
     if (pt->ops->lookup[hash] == 0) {
         pt->ops->count++;
-        struct output new_op = {.value = value, .position = position, .next_op_index = next_op_index};
+        output new_op = {.value = value, .position = position, .next_op_index = next_op_index};
         size_t free_list_head = pt->ops->data[0].next_op_index;
         if (pt->ops->data[free_list_head].next_op_index == 0){
             pt->ops->data[0].next_op_index = pt->ops->count + 1;
@@ -2631,7 +2631,7 @@ Creates a new output and links it to given node in the trie. Returns true if
 the creation and assignment finished successfully.
 
 @c
-bool set_output(struct pattern_trie *pt, size_t node, size_t value, size_t position){
+bool set_output(pattern_trie *pt, size_t node, size_t value, size_t position){
     size_t op_index;
     if (!new_trie_output(pt, value, position, pt->ops->lookup[pt->t->aux[node]], &op_index)) {
         return false;
@@ -2653,8 +2653,8 @@ for patterns. It comprises 4 fields:
 The counts on given index correspond to the same pattern.
 
 @c
-struct pattern_counts *init_pattern_counts(size_t capacity){
-    struct pattern_counts *pc = malloc(sizeof(struct pattern_counts));
+pattern_counts *init_pattern_counts(size_t capacity){
+    pattern_counts *pc = malloc(sizeof(pattern_counts));
     if (pc == NULL) {
         fprintf(stderr, "Allocation error\n");
         return NULL;
@@ -2673,7 +2673,7 @@ struct pattern_counts *init_pattern_counts(size_t capacity){
     return pc;
 }
 
-struct pattern_counts *resize_pattern_counts(struct pattern_counts *pc, size_t new_capacity){
+pattern_counts *resize_pattern_counts(pattern_counts *pc, size_t new_capacity){
     size_t *new_good = realloc(pc->good, new_capacity * sizeof(size_t));
     if (new_good == NULL){
         fprintf(stderr, "Allocation error\n");
@@ -2693,7 +2693,7 @@ struct pattern_counts *resize_pattern_counts(struct pattern_counts *pc, size_t n
     return pc;
 }
 
-void destroy_pattern_counts(struct pattern_counts *pc){
+void destroy_pattern_counts(pattern_counts *pc){
     free(pc->good);
     free(pc->bad);
     free(pc);
@@ -2714,8 +2714,8 @@ template that the current iteration explores is defined by {\tt pat\_len} and
 in the {\tt aux} field of occupied trie nodes instead.
 
 @c
-struct count_trie *init_count_trie(size_t trie_capacity, size_t counts_capacity){
-    struct count_trie *ct = malloc(sizeof(struct count_trie));
+count_trie *init_count_trie(size_t trie_capacity, size_t counts_capacity){
+    count_trie *ct = malloc(sizeof(count_trie));
     if (ct == NULL){
         return NULL;
     }
@@ -2738,7 +2738,7 @@ struct count_trie *init_count_trie(size_t trie_capacity, size_t counts_capacity)
     return ct;
 }
 
-void destroy_count_trie(struct count_trie *ct){
+void destroy_count_trie(count_trie *ct){
     destroy_trie(ct->t);
     destroy_pattern_counts(ct->cnts);
     free(ct);
@@ -2756,8 +2756,8 @@ structure contains following fields:
         this flag indicates whether the end of file was reached..
 
 @c
-struct string_buffer *init_buffer(size_t capacity){
-    struct string_buffer *buf = malloc(sizeof(struct string_buffer));
+string_buffer *init_buffer(size_t capacity){
+    string_buffer *buf = malloc(sizeof(string_buffer));
     if (buf == NULL) {
         fputs("Allocation error\n", stderr);
         return NULL;
@@ -2775,7 +2775,7 @@ struct string_buffer *init_buffer(size_t capacity){
     return buf;
 }
 
-struct string_buffer *resize_buffer(struct string_buffer *buf, size_t new_capacity){
+string_buffer *resize_buffer(string_buffer *buf, size_t new_capacity){
     char *new_ptr = realloc(buf->data, new_capacity);
     if (new_ptr == NULL) {
         fputs("Allocation error\n", stderr);
@@ -2786,13 +2786,13 @@ struct string_buffer *resize_buffer(struct string_buffer *buf, size_t new_capaci
     return buf;
 }
 
-void reset_buffer(struct string_buffer *buf){
+void reset_buffer(string_buffer *buf){
     buf->eof = false;
     buf->size = 0;
     buf->data[0] = '\0';
 }
 
-void destroy_buffer(struct string_buffer *buf){
+void destroy_buffer(string_buffer *buf){
     free(buf->data);
     free(buf);
 }
@@ -2803,7 +2803,7 @@ may overwrite the ending '0x00', and the caller should ensure it is not the
 case. Returns true upon successful write.
 
 @c
-bool append_char(struct string_buffer *buf, char c){
+bool append_char(string_buffer *buf, char c){
     if (buf->size + 1 >= buf->capacity) {
         if (resize_buffer(buf, 2*buf->capacity) == NULL) {
             return false;
@@ -2820,7 +2820,7 @@ the '0x00' at its end by design, and the character is copied to the buffer as
 well. Returns true if the copying finished successfully.
 
 @c
-bool append_string(struct string_buffer *buf, const char *str){
+bool append_string(string_buffer *buf, const char *str){
     size_t len = strlen(str) + 1;
     if (buf->size + len >= buf->capacity) {
         if (resize_buffer(buf, 2*(buf->size + len)) == NULL) {
@@ -2847,13 +2847,13 @@ In the {\tt aux} field of the trie nodes corresponding to a character we store
 index of the beginning of its lowercase representation in {\tt alphabet}.
 
 @c
-struct translate_table *init_tr_table(size_t mapping_capacity, size_t alphabet_capacity){
-    struct translate_table *tt = malloc(sizeof(struct translate_table));
+translate_table *init_tr_table(size_t mapping_capacity, size_t alphabet_capacity){
+    translate_table *tt = malloc(sizeof(translate_table));
     if (tt == NULL){
         fprintf(stderr, "Allocation error\n");
         return NULL;
     }
-    struct trie *mapping = init_trie(mapping_capacity);
+    trie *mapping = init_trie(mapping_capacity);
     if (mapping == NULL){
         free(tt);
         return NULL;
@@ -2863,7 +2863,7 @@ struct translate_table *init_tr_table(size_t mapping_capacity, size_t alphabet_c
         free(tt);
         return NULL;
     }
-    struct string_buffer *alphabet = init_buffer(alphabet_capacity);
+    string_buffer *alphabet = init_buffer(alphabet_capacity);
     if (alphabet == NULL){
         destroy_trie(mapping);
         free(tt);
@@ -2890,7 +2890,7 @@ struct translate_table *init_tr_table(size_t mapping_capacity, size_t alphabet_c
     return tt;
 }
 
-void destroy_tr_table(struct translate_table *tt){
+void destroy_tr_table(translate_table *tt){
     destroy_trie(tt->mapping);
     destroy_buffer(tt->alphabet);
     free(tt->index_to_alphabet);
@@ -2902,7 +2902,7 @@ Returns the lowercase representation of the given letter, or NULL if the letter
 does not exist in the translate table.
 
 @c
-char *get_lower(struct translate_table *tt, const char *letter){
+char *get_lower(translate_table *tt, const char *letter){
     size_t index = traverse_trie(tt->mapping, letter);
     if (index == 0 || tt->mapping->aux[index] > tt->letter_count || tt->mapping->aux[index] == 0){
         return NULL;
@@ -2919,7 +2919,7 @@ Returns the index of the given letter in the translate table, or 0 if the letter
 does not exist.
 
 @c
-size_t get_letter_index(struct translate_table *tt, char *letter){
+size_t get_letter_index(translate_table *tt, char *letter){
     size_t index = traverse_trie(tt->mapping, letter);
     if (index == 0 || tt->mapping->aux[index] > tt->letter_count || tt->mapping->aux[index] == 0){
         return 0;
@@ -2934,7 +2934,7 @@ subtracts 254 from the index. Finally appends the byte with the same
 value as the remainder.
 
 @c
-bool convert_index(size_t index, struct word *word){
+bool convert_index(size_t index, word *word){
     if (index == 0){
         return true;
     }
@@ -3017,8 +3017,8 @@ specifically for each iteration within a level):
     \item{$\bullet$} {\bf pat\_dot} (pass-specific): the current dot position.
 
 @c
-struct params *init_params(){
-    struct params *p = malloc(sizeof(struct params));
+params *init_params(){
+    params *p = malloc(sizeof(params));
     if (p == NULL) {
         fputs("Allocation error\n", stderr);
         return NULL;
@@ -3038,7 +3038,7 @@ struct params *init_params(){
     return p;
 }
 
-void reset_params(struct params *p){
+void reset_params(params *p){
     p->left_hyphen_min = 2;
     p->right_hyphen_min = 3;
     p->bad_hyphen = '.';
@@ -3046,7 +3046,7 @@ void reset_params(struct params *p){
     p->good_hyphen = '*';
 }
 
-void destroy_params(struct params *p){
+void destroy_params(params *p){
     if (p->dictionary_file != NULL){
         fclose(p->dictionary_file);
     }
@@ -3095,8 +3095,8 @@ node. There are only 3 fields:
     \item{$\bullet$} {\bf data}: the array of values currently on the stack.
 
 @c
-struct stack *init_stack(size_t capacity){
-    struct stack *s = malloc(sizeof(struct stack));
+stack *init_stack(size_t capacity){
+    stack *s = malloc(sizeof(stack));
     if (s == NULL) {
         fprintf(stderr, "Allocation error\n");
         return NULL;
@@ -3113,7 +3113,7 @@ struct stack *init_stack(size_t capacity){
     return s;
 }
 
-struct stack *resize_stack(struct stack *s, size_t new_capacity){
+stack *resize_stack(stack *s, size_t new_capacity){
     size_t *new_stack = realloc(s->data, new_capacity * sizeof(size_t));
     if (new_stack == NULL){
         fprintf(stderr, "Allocation error\n");
@@ -3125,7 +3125,7 @@ struct stack *resize_stack(struct stack *s, size_t new_capacity){
     return s;
 }
 
-void destroy_stack(struct stack *s){
+void destroy_stack(stack *s){
     free(s->data);
     free(s);
 }
@@ -3135,7 +3135,7 @@ Appends the given value to the top of the stack. Returns true if the insertion
 finishes successfully.
 
 @c
-bool put_on_stack(struct stack *s, size_t value){
+bool put_on_stack(stack *s, size_t value){
     if (s->top >= s->capacity){
         size_t new_capacity = 2 * (s->top);
         if (resize_stack(s, new_capacity) == NULL){
@@ -3152,7 +3152,7 @@ Returns the value currently at {\tt top} index. Does not change anything on the
 stack.
 
 @c
-size_t get_top_value(struct stack *s){
+size_t get_top_value(stack *s){
     if (s->top == 0){
         return 0;
     }
@@ -3163,7 +3163,7 @@ size_t get_top_value(struct stack *s){
 Changes the value at {\tt top} index to the given one.
 
 @c
-void set_top_value(struct stack *s, size_t value){
+void set_top_value(stack *s, size_t value){
     if (s->top == 0){
         return;
     }
@@ -3195,44 +3195,44 @@ Note that the {\tt lowercase} array is not strictly a string as we do not
 require the closing '0x00'.
 
 @c
-struct word *init_word(size_t capacity){
-    struct word *word = malloc(sizeof(struct word));
-    if (word == NULL){
+word *init_word(size_t capacity){
+    word *wrd = malloc(sizeof(word));
+    if (wrd == NULL){
         return NULL;
     }
-    word->translated = calloc(capacity, sizeof(char));
-    if (word->translated == NULL){
-        free(word);
+    wrd->translated = calloc(capacity, sizeof(char));
+    if (wrd->translated == NULL){
+        free(wrd);
         return NULL;
     }
-    word->true_hyphens = calloc(capacity, sizeof(size_t));
-    if (word->true_hyphens == NULL){
-        free(word->translated);
-        free(word);
+    wrd->true_hyphens = calloc(capacity, sizeof(size_t));
+    if (wrd->true_hyphens == NULL){
+        free(wrd->translated);
+        free(wrd);
         return NULL;
     }
-    word->found_hyphens = calloc(capacity, sizeof(uint8_t));
-    if (word->found_hyphens == NULL){
-        free(word->translated);
-        free(word->true_hyphens);
-        free(word);
+    wrd->found_hyphens = calloc(capacity, sizeof(uint8_t));
+    if (wrd->found_hyphens == NULL){
+        free(wrd->translated);
+        free(wrd->true_hyphens);
+        free(wrd);
         return NULL;
     }
-    word->no_more = calloc(capacity, sizeof(bool));
-    if (word->no_more == NULL){
-        free(word->translated);
-        free(word->true_hyphens);
-        free(word->found_hyphens);
-        free(word);
+    wrd->no_more = calloc(capacity, sizeof(bool));
+    if (wrd->no_more == NULL){
+        free(wrd->translated);
+        free(wrd->true_hyphens);
+        free(wrd->found_hyphens);
+        free(wrd);
         return NULL;
     }
-    word->size = 0;
-    word->length = 0;
-    word->capacity = capacity;
-    return word;
+    wrd->size = 0;
+    wrd->length = 0;
+    wrd->capacity = capacity;
+    return wrd;
 }
 
-struct word *resize_word(struct word *word, size_t new_capacity){
+word *resize_word(word *word, size_t new_capacity){
     char *new_translated = realloc(word->translated, new_capacity * sizeof(char));
     if (new_translated == NULL) { fprintf(stderr, "Allocation error\n"); return NULL; }
     word->translated = new_translated;
@@ -3259,7 +3259,7 @@ struct word *resize_word(struct word *word, size_t new_capacity){
     return word;
 }
 
-void reset_word(struct word *word){
+void reset_word(word *word){
     word->length = 0;
     word->size = 0;
     memset(word->translated, 0, word->capacity*sizeof(char));
@@ -3268,7 +3268,7 @@ void reset_word(struct word *word){
     memset(word->no_more, false, word->capacity*sizeof(bool));
 }
 
-void destroy_word(struct word *word){
+void destroy_word(word *word){
     free(word->translated);
     free(word->true_hyphens);
     free(word->found_hyphens);
@@ -3276,14 +3276,14 @@ void destroy_word(struct word *word){
     free(word);
 }
 
-size_t get_true_hyphen(struct word *word, size_t index){
+size_t get_true_hyphen(word *word, size_t index){
     if (index >= word->size){
         return 0;
     }
     return word->true_hyphens[index];
 }
 
-bool set_true_hyphen(struct word *word, size_t index, size_t value){
+bool set_true_hyphen(word *word, size_t index, size_t value){
     if (index >= word->size){
         return false;
     }
@@ -3291,14 +3291,14 @@ bool set_true_hyphen(struct word *word, size_t index, size_t value){
     return true;
 }
 
-uint8_t get_found_hyphen(struct word *word, size_t index){
+uint8_t get_found_hyphen(word *word, size_t index){
     if (index >= word->size) {
         return 0;
     }
     return word->found_hyphens[index];    
 }
 
-bool set_found_hyphen(struct word *word, size_t index, uint8_t value){
+bool set_found_hyphen(word *word, size_t index, uint8_t value){
     if (index >= word->size){
         return false;
     }
@@ -3306,14 +3306,14 @@ bool set_found_hyphen(struct word *word, size_t index, uint8_t value){
     return true;
 }
 
-bool get_no_more(struct word *word, size_t index){
+bool get_no_more(word *word, size_t index){
     if (index >= word->size){
         return false;
     }
     return word->no_more[index];
 }
 
-bool set_no_more(struct word *word, size_t index, bool value){
+bool set_no_more(word *word, size_t index, bool value){
     if (index >= word->size){
         return false;
     }
@@ -3325,7 +3325,7 @@ Puts the given byte to the end of word. Returns true if the insertion was
 successful.
 
 @c
-bool append_char_to_word(struct word *word, char c){
+bool append_char_to_word(word *word, char c){
     if (word->size >= word->capacity - 1){
         if (!resize_word(word, 2 * word->capacity)){
             return false;
@@ -3352,8 +3352,8 @@ arrays it does not need:
     \item{$\bullet$} {\bf hyphens}: array of hyphenation levels of the pattern.
 
 @c
-struct pattern *init_pattern(size_t capacity){
-    struct pattern *pat = malloc(sizeof(struct pattern));
+pattern *init_pattern(size_t capacity){
+    pattern *pat = malloc(sizeof(pattern));
     if(pat == NULL){
         return NULL;
     }
@@ -3375,7 +3375,7 @@ struct pattern *init_pattern(size_t capacity){
     return pat;
 }
 
-struct pattern *resize_pattern(struct pattern *pat, size_t new_capacity){
+pattern *resize_pattern(pattern *pat, size_t new_capacity){
     char* new_text = realloc(pat->text, new_capacity*sizeof(char));
     uint8_t* new_hyphens= realloc(pat->hyphens, new_capacity*sizeof(uint8_t));
 
@@ -3394,27 +3394,27 @@ struct pattern *resize_pattern(struct pattern *pat, size_t new_capacity){
     return pat;
 }
 
-void reset_pattern(struct pattern *pat){
+void reset_pattern(pattern *pat){
     pat->length = 0;
     pat->size = 0;
     memset(pat->text, '\0', pat->capacity * sizeof(char));
     memset(pat->hyphens, 0, pat->capacity * sizeof(uint8_t));
 }
 
-void destroy_pattern(struct pattern *pat){
+void destroy_pattern(pattern *pat){
     free(pat->text);
     free(pat->hyphens);
     free(pat);
 }
 
-uint8_t get_hyphen(struct pattern *pat, size_t index){
+uint8_t get_hyphen(pattern *pat, size_t index){
     if (index >= pat->capacity){
         return 0;
     }
     return pat->hyphens[index];
 }
 
-bool set_hyphen(struct pattern *pat, size_t index, uint8_t value){
+bool set_hyphen(pattern *pat, size_t index, uint8_t value){
     if (index >= pat->capacity){
         return false;
     }
@@ -3429,7 +3429,7 @@ subtracts 254 from the index. Finally appends the byte with the same value as
 the remainder.
 
 @c
-bool convert_index_to_pattern(size_t index, struct pattern *pat){
+bool convert_index_to_pattern(size_t index, pattern *pat){
     if (index == 0) return true;
     
     size_t ff_count = (index-1) / 254;

@@ -3,20 +3,20 @@
 #include "../utfpatgen.h"
 
 /* Test context structure holding commonly used test fixtures */
-struct test_context {
-    struct trie *helper_trie;
-    struct pattern_trie *pt;
-    struct translate_table *tt;
-    struct params *params;
-    struct string_buffer *buf;
-    struct pattern *pat;
-    struct word *word;
-    struct count_trie *ct;
-};
+typedef struct {
+    trie *helper_trie;
+    pattern_trie *pt;
+    translate_table *tt;
+    params *params;
+    string_buffer *buf;
+    pattern *pat;
+    word *word;
+    count_trie *ct;
+} test_context;
 
 /* Initialize test context with all structures pre-allocated */
-struct test_context *setup_test_context() {
-    struct test_context *ctx = malloc(sizeof(struct test_context));
+test_context *setup_test_context() {
+    test_context *ctx = malloc(sizeof(test_context));
     if (ctx == NULL) {
         return NULL;
     }
@@ -52,7 +52,7 @@ struct test_context *setup_test_context() {
 }
 
 /* Clean up test context and all allocated resources */
-void teardown_test_context(struct test_context *ctx) {
+void teardown_test_context(test_context *ctx) {
     if (ctx == NULL) {
         return;
     }
@@ -84,8 +84,8 @@ void teardown_test_context(struct test_context *ctx) {
 }
 
 /* Run a test function with automatic setup and teardown */
-void run_test(void (*test_func)(struct test_context *)) {
-    struct test_context *ctx = setup_test_context();
+void run_test(void (*test_func)(test_context *)) {
+    test_context *ctx = setup_test_context();
     if (ctx != NULL) {
         test_func(ctx);
         teardown_test_context(ctx);
@@ -95,9 +95,9 @@ void run_test(void (*test_func)(struct test_context *)) {
 }
 
 /* Helper function to get pattern output */
-struct output get_pattern_output(struct pattern_trie *pt, const char *pattern){
+output get_pattern_output(pattern_trie *pt, const char *pattern){
     size_t trie_index = traverse_trie(pt->t, pattern);
-    struct output empty = {.value = EMPTY_OP_VALUE};
+    output empty = {.value = EMPTY_OP_VALUE};
     if (trie_index == 0) {
         return empty;
     }
@@ -109,8 +109,8 @@ struct output get_pattern_output(struct pattern_trie *pt, const char *pattern){
 }
 
 /* Helper function to create mock buffer */
-struct string_buffer *mock_buffer(const char *str) {
-    struct string_buffer *buf = init_buffer(strlen(str) + 1);
+string_buffer *mock_buffer(const char *str) {
+    string_buffer *buf = init_buffer(strlen(str) + 1);
     if (buf != NULL) {
         strcpy(buf->data, str);
         buf->size = strlen(str);
@@ -119,7 +119,7 @@ struct string_buffer *mock_buffer(const char *str) {
 }
 
 /* Helper function to print buffer contents */
-void print_buffer(struct string_buffer *buf) {
+void print_buffer(string_buffer *buf) {
     printf("Buffer(size=%zu, capacity=%zu, eof=%d):\n", buf->size, buf->capacity, buf->eof);
     for (size_t i = 0; i < buf->size; i++) {
         printf(" buf[%zu] = '%c' (0x%02x)\n", i, buf->data[i], (uint8_t)buf->data[i]);
@@ -127,9 +127,9 @@ void print_buffer(struct string_buffer *buf) {
 }
 
 /* Helper function to print outputs */
-void print_outputs(struct outputs *ops) {
+void print_outputs(outputs *ops) {
     for (size_t i = 1; i < ops->capacity+1; i++) {
-        struct output op = ops->data[i];
+        output op = ops->data[i];
         if (op.value != EMPTY_OP_VALUE) {
             printf("Output %zu: value=%zu, position=%zu\n", i, op.value, op.position);
         }
@@ -139,7 +139,7 @@ void print_outputs(struct outputs *ops) {
 
 /* ===== TEST FUNCTIONS ===== */
 
-void test_read_line(struct test_context *ctx) {
+void test_read_line(test_context *ctx) {
     printf("---- Read Line Test ----\n");
     FILE *file = fopen("test/read_line_test.txt", "r");
     if (file == NULL) {
@@ -158,7 +158,7 @@ void test_read_line(struct test_context *ctx) {
     fclose(file);
 }
 
-void test_parse_header(struct test_context *ctx){
+void test_parse_header(test_context *ctx){
     printf("\n---- Parse Header Test ----\n");
 
     const char *full_header = " 510 xyz";
@@ -168,7 +168,7 @@ void test_parse_header(struct test_context *ctx){
 
     const char *test_headers[4] = {full_header, no_header, incomplete_header, bad_header};
 
-    struct string_buffer *buf_mock;
+    string_buffer *buf_mock;
     for (size_t i = 0; i < 4; i++){
         buf_mock = mock_buffer(test_headers[i]);
         reset_params(ctx->params);
@@ -185,7 +185,7 @@ void test_parse_header(struct test_context *ctx){
     }
 }
 
-void test_trie(struct test_context *ctx) {
+void test_trie(test_context *ctx) {
     printf("\n---- Trie Test ----\n");
 
     const char *patterns[] = {"test", "tea", "text"};
@@ -199,7 +199,7 @@ void test_trie(struct test_context *ctx) {
         }
     }
 
-    struct output retrieved_op;
+    output retrieved_op;
     for (size_t i = 0; i < 3; i++){
         retrieved_op = get_pattern_output(ctx->pt, patterns[i]);
         if (retrieved_op.value != EMPTY_OP_VALUE) {
@@ -211,7 +211,7 @@ void test_trie(struct test_context *ctx) {
     }
 }
 
-void test_read_letters(struct test_context *ctx) {
+void test_read_letters(test_context *ctx) {
     printf("\n---- Read Letters Test ----\n");
 
     strcpy(ctx->buf->data, " a A Á ˇA  ");
@@ -245,7 +245,7 @@ void test_read_letters(struct test_context *ctx) {
     }
 }
 
-void test_read_translate(struct test_context *ctx) {
+void test_read_translate(test_context *ctx) {
     printf("\n---- Read Translate Test ----\n");
     FILE *file = fopen("test/german.tr", "r");
     if (file == NULL) {
@@ -262,7 +262,7 @@ void test_read_translate(struct test_context *ctx) {
     }
 }
 
-void test_parse_word(struct test_context *ctx) {
+void test_parse_word(test_context *ctx) {
     printf("\n---- Parse Word Test ----\n");
 
     strcpy(ctx->buf->data, "te-st");
@@ -274,7 +274,7 @@ void test_parse_word(struct test_context *ctx) {
 
     if (parse_word(ctx->buf, ctx->tt, ctx->params, ctx->word)) {
         char text[10] = {'\0'};
-        struct word word = { .translated = text, .length = 0 };
+        word word = { .translated = text, .length = 0 };
         size_t letter_index;
         char *letter;
         char *word_index = ctx->word->translated;
@@ -298,7 +298,7 @@ void test_parse_word(struct test_context *ctx) {
     }
 }
 
-void test_hyphenate_word(struct test_context *ctx){
+void test_hyphenate_word(test_context *ctx){
     printf("\n---- Hyphenate Word Test ----\n");
 
     strcpy(ctx->buf->data, "\x1b\x14\x05\x13\x14\x1b");
@@ -338,7 +338,7 @@ void test_hyphenate_word(struct test_context *ctx){
     }
 }
 
-void test_patterns(struct test_context *ctx){
+void test_patterns(test_context *ctx){
     printf("\n---- Patterns Test ----\n");
 
     strcpy(ctx->buf->data, "\xfe\x02st\xff");
@@ -353,13 +353,13 @@ void test_patterns(struct test_context *ctx){
     }
     printf("Pattern %s parsed.\n", ctx->buf->data);
 
-    struct pass_stats ps;
+    pass_stats ps;
     if (!insert_new_pattern(ctx->pat, ctx->pt, &ps, ctx->helper_trie)){
         return;
     }
     printf("Pattern inserted successfully.\n");
 
-    struct output retrieved_op = get_pattern_output(ctx->pt, ctx->pat->text);
+    output retrieved_op = get_pattern_output(ctx->pt, ctx->pat->text);
     if (retrieved_op.value != EMPTY_OP_VALUE) {
         printf("Retrieved output for pattern '%s': value=%zu, position=%zu\n",
                ctx->pat->text, retrieved_op.value, retrieved_op.position);
@@ -368,7 +368,7 @@ void test_patterns(struct test_context *ctx){
     }
 }
 
-void test_letter_index(struct test_context *ctx) {
+void test_letter_index(test_context *ctx) {
     printf("\n---- Letter Index Test ----\n");
     
     // Load default ASCII mapping
@@ -432,7 +432,7 @@ void test_letter_index(struct test_context *ctx) {
     printf("Letter index test PASSED\n");
 }
 
-void test_german_letter_index(struct test_context *ctx) {
+void test_german_letter_index(test_context *ctx) {
     printf("\n---- German Letter Index Test ----\n");
     
     // Read German translate file
